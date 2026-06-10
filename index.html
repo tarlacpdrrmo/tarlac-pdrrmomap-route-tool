@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Running Route Creator Pro</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar container */
+        #sidebar {
+            width: 320px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            flex-grow: 1;
+            height: 100%;
+        }
+
+        h2 { margin-top: 0; font-size: 1.5rem; color: #333; }
+        
+        .control-group { margin-bottom: 20px; }
+        
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background-color: #0056b3; }
+        button.active { background-color: #28a745; box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.5); }
+        
+        button.danger { background-color: #dc3545; }
+        button.danger:hover { background-color: #c82333; }
+
+        button.export { background-color: #6f42c1; margin-top: auto; }
+        button.export:hover { background-color: #59339d; }
+
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .legend-item span { font-size: 1.2rem; margin-right: 10px; }
+
+        /* Custom Icon Styles */
+        .custom-icon {
+            font-size: 24px;
+            text-align: center;
+            line-height: 24px;
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.3));
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>Route Builder</h2>
+        <p>Select a tool below, then click on the map.</p>
+        
+        <div class="control-group">
+            <button id="btn-route" class="active" onclick="setMode('route')">🔵 Draw Route Line</button>
+            <button id="btn-start" onclick="setMode('start')">🏁 Place Start Line</button>
+            <button id="btn-finish" onclick="setMode('finish')">🏆 Place Finish Line</button>
+            <button id="btn-water" onclick="setMode('water')">💧 Add Water Station</button>
+            <button id="btn-medical" onclick="setMode('medical')">✚ Add Medical Tent</button>
+        </div>
+
+        <button class="danger" onclick="clearMap()">🗑️ Clear Map</button>
+
+        <div class="legend">
+            <h3>Legend</h3>
+            <div class="legend-item"><span>🔵</span> Route Path</div>
+            <div class="legend-item"><span>🏁</span> Start Line</div>
+            <div class="legend-item"><span>🏆</span> Finish Line</div>
+            <div class="legend-item"><span>💧</span> Water Station</div>
+            <div class="legend-item"><span>✚</span> Medical Station</div>
+        </div>
+
+        <button class="export" id="exportBtn" onclick="exportMap()">📸 Export Map to PNG</button>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // --- 1. SET UP MAP LAYERS ---
+        
+        // Standard Street Map
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        });
+
+        // Terrain / Topo Map
+        const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            maxZoom: 17,
+            attribution: '© OpenTopoMap'
+        });
+
+        // Satellite Map (Esri)
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '© Esri'
+        });
+
+        // --- 2. INITIALIZE MAP ---
+        const map = L.map('map', {
+            center: [14.5995, 120.9842],
+            zoom: 13,
+            layers: [streetLayer] // Set default layer
+        });
+
+        // Add Layer Control (Switching between maps)
+        const baseMaps = {
+            "Streets": streetLayer,
+            "Terrain": terrainLayer,
+            "Satellite": satelliteLayer
+        };
+        L.control.layers(baseMaps).addTo(map);
+
+        // --- 3. STATE & ICONS ---
+        let currentMode = 'route';
+        let routeCoordinates = [];
+        let polyline = L.polyline([], {color: 'blue', weight: 5, opacity: 0.7}).addTo(map);
+        let markers = [];
+
+        const iconStyles = {
+            start: L.divIcon({ html: '🏁', className: 'custom-icon', iconSize: [24, 24], iconAnchor: [12, 24] }),
+            finish: L.divIcon({ html: '🏆', className: 'custom-icon', iconSize: [24, 24], iconAnchor: [12, 24] }),
+            water: L.divIcon({ html: '💧', className: 'custom-icon', iconSize: [24, 24], iconAnchor: [12, 24] }),
+            medical: L.divIcon({ html: '✚', className: 'custom-icon', iconSize: [24, 24], iconAnchor: [12, 24], style: 'color: red;' })
+        };
+
+        // --- 4. MAP INTERACTIONS ---
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.control-group button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${mode}`).classList.add('active');
+        }
+
+        map.on('click', function(e) {
+            if (currentMode === 'route') {
+                routeCoordinates.push(e.latlng);
+                polyline.setLatLngs(routeCoordinates);
+            } else {
+                let marker = L.marker(e.latlng, { icon: iconStyles[currentMode] }).addTo(map);
+                marker.on('click', function() {
+                    map.removeLayer(marker);
+                    markers = markers.filter(m => m !== marker);
+                });
+                markers.push(marker);
+            }
+        });
+
+        function clearMap() {
+            if(confirm("Are you sure you want to clear the entire map?")) {
+                routeCoordinates = [];
+                polyline.setLatLngs([]);
+                markers.forEach(marker => map.removeLayer(marker));
+                markers = [];
+            }
+        }
+
+        // --- 5. IMAGE EXPORT LOGIC ---
+        function exportMap() {
+            const mapElement = document.getElementById('map');
+            const btn = document.getElementById('exportBtn');
+            const originalText = btn.innerHTML;
+            
+            // Show loading state
+            btn.innerHTML = "⏳ Generating Image...";
+            btn.disabled = true;
+
+            // Use html2canvas to take a snapshot of the map div
+            html2canvas(mapElement, {
+                useCORS: true, // Crucial to load map tiles correctly
+                allowTaint: false,
+                logging: false
+            }).then(canvas => {
+                // Convert canvas to image URL
+                const imgData = canvas.toDataURL('image/png');
+                
+                // Create a temporary link to trigger download
+                const link = document.createElement('a');
+                link.download = 'my-running-route.png';
+                link.href = imgData;
+                link.click();
+                
+                // Restore button state
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }).catch(err => {
+                alert("Sorry, there was an issue exporting the map. Make sure all map tiles have finished loading.");
+                console.error(err);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>

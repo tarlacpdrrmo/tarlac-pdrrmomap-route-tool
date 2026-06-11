@@ -40,8 +40,6 @@
         .history-row button { flex: 1; justify-content: center; padding: 8px 12px; font-size: 13px; }
         .history-row button:disabled { opacity: 0.5; cursor: not-allowed; background: #f0f0f0; border-color: #ddd; color: #999; box-shadow: none; transform: none; }
 
-        .instruction { font-size: 13px; color: #444; margin-bottom: 12px; line-height: 1.4; }
-
         /* Modern Buttons & Inputs */
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
         .tool-wrapper { display: flex; flex-direction: column; }
@@ -233,7 +231,18 @@
             maxZoom: 20, maxNativeZoom: 17, attribution: '© Esri', crossOrigin: true
         });
 
-        const map = L.map('map', { center: [15.4828, 120.5960], zoom: 12, layers: [streetLayer], zoomControl: false, preferCanvas: true });
+        // --- NEW: SMOOTH FRACTIONAL ZOOM SETTINGS ADDED HERE ---
+        const map = L.map('map', { 
+            center: [15.4828, 120.5960], 
+            zoom: 12, 
+            layers: [streetLayer], 
+            zoomControl: false, 
+            preferCanvas: true,
+            zoomSnap: 0.1,             // Unlocks fractional zoom levels (e.g., 12.3 instead of rigid 12 or 13)
+            zoomDelta: 0.5,            // Halves the jump distance for standard zooming
+            wheelPxPerZoomLevel: 120   // Slows down the mouse wheel sensitivity (default is 60)
+        });
+        
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.control.layers({ "Standard Streets": streetLayer, "Topographic Terrain": terrainLayer, "High-Res Satellite": satelliteLayer }, null, {position: 'topright'}).addTo(map);
 
@@ -376,7 +385,6 @@
 
         saveState();
 
-        // --- NEW: DYNAMIC EXPORT LOGIC ---
         function exportMap() {
             const mapElement = document.getElementById('map');
             const btn = document.getElementById('exportBtn');
@@ -385,13 +393,11 @@
             btn.innerHTML = "<span class='icon'>⏳</span> Generating...";
             btn.disabled = true;
 
-            // 1. Hide unwanted UI elements from the screenshot
             const zoomCtrl = document.querySelector('.leaflet-control-zoom');
             const layersCtrl = document.querySelector('.leaflet-control-layers');
             if (zoomCtrl) zoomCtrl.style.display = 'none';
             if (layersCtrl) layersCtrl.style.display = 'none';
 
-            // 2. Generate Custom Title (Only if input is not empty)
             let titleDiv = null;
             const titleText = document.getElementById('map-title').value.trim();
             const titleFont = document.getElementById('map-font').value;
@@ -403,7 +409,6 @@
                 mapElement.appendChild(titleDiv);
             }
 
-            // 3. Generate Dynamic Legend based on what is actually on the map
             let legendDiv = document.createElement('div');
             legendDiv.className = 'dynamic-export-legend';
             let legendHTML = `<h3>Map Legend</h3>`;
@@ -421,21 +426,17 @@
 
             legendDiv.innerHTML = legendHTML;
             
-            // Only append the legend if there is at least one item
             if (routeCoordinates.length > 0 || markers.length > 0) {
                 mapElement.appendChild(legendDiv);
             }
 
-            // 4. Take Screenshot
             domtoimage.toPng(mapElement, { width: mapElement.clientWidth, height: mapElement.clientHeight })
             .then(function (dataUrl) {
-                // Restore controls and clean up injected elements
                 if (zoomCtrl) zoomCtrl.style.display = ''; 
                 if (layersCtrl) layersCtrl.style.display = ''; 
                 if (titleDiv) mapElement.removeChild(titleDiv);
                 if (legendDiv.parentNode) mapElement.removeChild(legendDiv);
 
-                // Trigger Download
                 const link = document.createElement('a');
                 link.download = (titleText ? titleText.replace(/ /g, '-') : 'tarlac-route-map') + '.png';
                 link.href = dataUrl;

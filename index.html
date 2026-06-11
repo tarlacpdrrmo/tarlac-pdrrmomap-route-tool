@@ -22,7 +22,7 @@
         /* Floating Frosted Glass UI Panel */
         #ui-panel {
             position: absolute; top: 20px; left: 20px; width: 320px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 16px; padding: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); z-index: 1000; display: flex; flex-direction: column;
@@ -61,7 +61,7 @@
             border-radius: 0 0 8px 8px; padding: 12px; margin-top: -2px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
         }
         .options-panel input[type="text"], .options-panel select {
-            width: 100%; padding: 8px 10px; border: 1px solid #cddc39; border-radius: 6px; 
+            width: 100%; padding: 8px 10px; border-radius: 6px; 
             border: 1px solid #b3d4ff; font-size: 13px; outline: none; margin-bottom: 10px; color: #1a73e8;
         }
         .options-panel input[type="text"]::placeholder { color: #8ab4f8; }
@@ -85,11 +85,18 @@
         button.export { background: #6200ea; border-color: #6200ea; color: white; justify-content: center; margin-top: auto; }
         button.export:hover { background: #5000d0; }
 
-        .legend { background: rgba(255, 255, 255, 0.6); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-        .legend h3 { margin: 0 0 10px 0; font-size: 14px; color: #333; font-weight: 600; }
-        .legend-item { display: flex; align-items: center; font-size: 13px; color: #555; margin-bottom: 8px; }
-        .legend-item:last-child { margin-bottom: 0; }
-        .legend-item span { width: 24px; text-align: center; margin-right: 8px; font-size: 16px; }
+        /* --- Custom Leaflet Legend (Inside Map) --- */
+        .legend-control {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.8); border-radius: 12px; padding: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333; min-width: 160px; pointer-events: auto;
+        }
+        .legend-control h3 { margin: 0 0 10px 0; font-size: 14px; font-weight: 700; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; }
+        .legend-control .legend-item { display: flex; align-items: center; font-size: 13px; color: #444; margin-bottom: 8px; font-weight: 500;}
+        .legend-control .legend-item:last-child { margin-bottom: 0; }
+        .legend-control .legend-item span { width: 24px; text-align: center; margin-right: 8px; font-size: 16px; }
 
         /* --- Map Markers CSS --- */
         .custom-icon { font-size: 24px; text-align: center; line-height: 24px; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); transition: transform 0.2s; }
@@ -98,14 +105,12 @@
         .map-text-label {
             background: transparent; border: none; padding: 0; font-weight: 900; color: #1e293b;
             white-space: nowrap; text-align: center; transition: transform 0.2s; box-shadow: none;
-            /* White stroke effect */
             text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0px 2px 4px rgba(0,0,0,0.5);
         }
         .map-text-label:hover { transform: scale(1.05); cursor: pointer; }
 
         .map-arrow-icon {
             font-weight: 900; text-align: center; transition: transform 0.2s;
-            /* White stroke effect */
             text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0px 2px 4px rgba(0,0,0,0.5);
         }
         .map-arrow-icon:hover { transform: scale(1.1); cursor: pointer; }
@@ -207,6 +212,9 @@
             <button id="btn-medical" onclick="setMode('medical')">
                 <span class="icon">✚</span> Add Medical Tent
             </button>
+            <button id="btn-ambulance" onclick="setMode('ambulance')">
+                <span class="icon">🚑</span> Add Ambulance
+            </button>
         </div>
 
         <div class="settings-row">
@@ -217,17 +225,6 @@
         <button class="danger" onclick="clearMap()">
             <span class="icon">🗑️</span> Clear Entire Map
         </button>
-
-        <div class="legend">
-            <h3>Map Legend</h3>
-            <div class="legend-item"><span id="legend-color-dot" style="color:#1a73e8;">●</span> Route Path</div>
-            <div class="legend-item"><span>📝</span> Text Label</div>
-            <div class="legend-item"><span>➔</span> Direction Arrow</div>
-            <div class="legend-item"><span>🏁</span> Start Line</div>
-            <div class="legend-item"><span>🏆</span> Finish Line</div>
-            <div class="legend-item"><span>💧</span> Water Station</div>
-            <div class="legend-item"><span style="color:red; font-weight:bold;">✚</span> Medical Station</div>
-        </div>
 
         <button class="export" id="exportBtn" onclick="exportMap()">
             <span class="icon">📸</span> Export Map to PNG
@@ -250,6 +247,27 @@
         L.DomEvent.disableClickPropagation(uiPanel);
         L.DomEvent.disableScrollPropagation(uiPanel);
 
+        // --- NEW: Map Legend as Native Leaflet Control ---
+        const legendControl = L.control({ position: 'bottomleft' });
+        legendControl.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'legend-control');
+            div.innerHTML = `
+                <h3>Map Legend</h3>
+                <div class="legend-item"><span id="legend-color-dot" style="color:#1a73e8; font-size:20px;">●</span> Route Path</div>
+                <div class="legend-item"><span>📝</span> Text Label</div>
+                <div class="legend-item"><span>➔</span> Direction Arrow</div>
+                <div class="legend-item"><span>🏁</span> Start Line</div>
+                <div class="legend-item"><span>🏆</span> Finish Line</div>
+                <div class="legend-item"><span>💧</span> Water Station</div>
+                <div class="legend-item"><span style="color:red; font-weight:900;">✚</span> Medical Tent</div>
+                <div class="legend-item"><span>🚑</span> Ambulance</div>
+            `;
+            // Ensure clicking the legend doesn't draw on the map
+            L.DomEvent.disableClickPropagation(div);
+            return div;
+        };
+        legendControl.addTo(map);
+
         let currentMode = 'route';
         let routeCoordinates = [];
         let markers = [];
@@ -262,7 +280,8 @@
             start: L.divIcon({ html: '🏁', className: 'custom-icon', iconSize: [24, 24], iconAnchor: [12, 24] }),
             finish: L.divIcon({ html: '🏆', className: 'custom-icon', iconSize: [24, 24], iconAnchor: [12, 24] }),
             water: L.divIcon({ html: '💧', className: 'custom-icon', iconSize: [24, 24], iconAnchor: [12, 24] }),
-            medical: L.divIcon({ html: '<span style="color:#d32f2f; font-weight:900;">✚</span>', className: 'custom-icon', iconSize: [24, 24], iconAnchor: [12, 24] })
+            medical: L.divIcon({ html: '<span style="color:#d32f2f; font-weight:900;">✚</span>', className: 'custom-icon', iconSize: [24, 24], iconAnchor: [12, 24] }),
+            ambulance: L.divIcon({ html: '🚑', className: 'custom-icon', iconSize: [28, 28], iconAnchor: [14, 14] }) // New Ambulance Icon
         };
 
         function setMode(mode) {
@@ -324,7 +343,6 @@
             }
         });
 
-        // Updated placeMarker to accept extra styling data
         function placeMarker(latlng, icon, type, customText = '', extraData = {}) {
             let marker = L.marker(latlng, { icon: icon, customType: type, customText: customText, extraData: extraData }).addTo(map);
             marker.on('click', function() {
@@ -346,7 +364,6 @@
             }
         }
 
-        // --- 4. UNDO / REDO LOGIC ---
         function saveState() {
             if (historyIndex < historyStack.length - 1) { historyStack = historyStack.slice(0, historyIndex + 1); }
             const currentState = {
@@ -399,7 +416,7 @@
 
         saveState();
 
-        // --- 5. EXPORT LOGIC ---
+        // --- 5. EXPORT LOGIC (Updated to keep legend visible) ---
         function exportMap() {
             const mapElement = document.getElementById('map');
             const btn = document.getElementById('exportBtn');
@@ -408,23 +425,34 @@
             btn.innerHTML = "<span class='icon'>⏳</span> Generating...";
             btn.disabled = true;
 
-            const controls = document.querySelector('.leaflet-control-container');
-            if (controls) controls.style.display = 'none';
+            // Specifically hide ONLY the zoom and layer controls during export.
+            // We do NOT hide the entire container, so the Legend stays visible!
+            const zoomCtrl = document.querySelector('.leaflet-control-zoom');
+            const layersCtrl = document.querySelector('.leaflet-control-layers');
+            if (zoomCtrl) zoomCtrl.style.display = 'none';
+            if (layersCtrl) layersCtrl.style.display = 'none';
 
             domtoimage.toPng(mapElement, { width: mapElement.clientWidth, height: mapElement.clientHeight })
             .then(function (dataUrl) {
-                if (controls) controls.style.display = 'block'; 
+                // Restore UI elements
+                if (zoomCtrl) zoomCtrl.style.display = ''; 
+                if (layersCtrl) layersCtrl.style.display = ''; 
+
                 const link = document.createElement('a');
                 link.download = 'tarlac-route-map.png';
                 link.href = dataUrl;
                 link.click();
+                
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
             })
             .catch(function (error) {
-                if (controls) controls.style.display = 'block'; 
+                if (zoomCtrl) zoomCtrl.style.display = ''; 
+                if (layersCtrl) layersCtrl.style.display = ''; 
+                
                 alert("Image export failed. Please ensure all map tiles have finished loading before exporting.");
                 console.error('Export error:', error);
+                
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
             });

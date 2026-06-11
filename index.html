@@ -40,6 +40,8 @@
         .history-row button { flex: 1; justify-content: center; padding: 8px 12px; font-size: 13px; }
         .history-row button:disabled { opacity: 0.5; cursor: not-allowed; background: #f0f0f0; border-color: #ddd; color: #999; box-shadow: none; transform: none; }
 
+        .instruction { font-size: 13px; color: #444; margin-bottom: 12px; line-height: 1.4; }
+
         /* Modern Buttons & Inputs */
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
         .tool-wrapper { display: flex; flex-direction: column; }
@@ -336,35 +338,35 @@
             }
         });
 
-        // --- NEW: Attach Hover & Click Events to Markers ---
+        // --- THE FIX: Event Isolation (No more map locking) ---
         function attachMarkerEvents(marker, type) {
             if (type === 'arrow') {
                 marker.bindTooltip("↕ Scroll to rotate<br>🖱️ Click to delete", { direction: 'top', offset: [0, -10], className: 'custom-tooltip' });
                 
-                let startRot = marker.options.extraData?.rot || 0;
-
-                marker.on('mouseover', function() {
-                    map.scrollWheelZoom.disable();
-                    startRot = marker.options.extraData?.rot || 0;
-                });
-
-                marker.on('mouseout', function() {
-                    map.scrollWheelZoom.enable();
-                    if (startRot !== (marker.options.extraData?.rot || 0)) {
-                        saveState(); // Only save history if rotation actually changed
-                    }
-                });
-
-                // Attach the wheel scrolling logic to the physical marker element
                 let el = marker.getElement();
                 if (el) {
+                    let startRot = marker.options.extraData?.rot || 0;
+
+                    // Track starting rotation for the history stack
+                    el.addEventListener('mouseenter', function() {
+                        startRot = marker.options.extraData?.rot || 0;
+                    });
+
+                    // Only save to history if it actually rotated
+                    el.addEventListener('mouseleave', function() {
+                        if (startRot !== (marker.options.extraData?.rot || 0)) {
+                            saveState();
+                        }
+                    });
+
+                    // Swallow the scroll event so the map never feels it!
                     el.addEventListener('wheel', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
+                        e.preventDefault();  // Stop page from scrolling
+                        e.stopPropagation(); // Stop map from zooming
                         
                         let currentRot = marker.options.extraData.rot || 0;
                         let dir = e.deltaY > 0 ? 1 : -1;
-                        currentRot += dir * 15; // Rotate by 15 degrees per scroll tick
+                        currentRot += dir * 15; 
                         marker.options.extraData.rot = currentRot;
                         
                         let innerDiv = el.querySelector('.arrow-inner');
@@ -464,7 +466,6 @@
             btn.innerHTML = "<span class='icon'>⏳</span> Generating...";
             btn.disabled = true;
 
-            // Close any open tooltips so they don't appear in the screenshot
             map.eachLayer(function (layer) { if (layer.closeTooltip) layer.closeTooltip(); });
 
             const zoomCtrl = document.querySelector('.leaflet-control-zoom');

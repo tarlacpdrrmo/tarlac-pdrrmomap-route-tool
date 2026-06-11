@@ -27,7 +27,7 @@
         /* Floating Frosted Glass UI Panel */
         #ui-panel {
             position: absolute; top: 20px; left: 20px; width: 320px;
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: 16px; padding: 20px;
@@ -80,10 +80,11 @@
             border: 1px solid #1a73e8; border-top: none;
             border-radius: 0 0 8px 8px; font-size: 13px; outline: none;
             background: #f4f8ff; color: #1a73e8; font-weight: 500;
-            display: none; /* Hidden by default */
+            display: none;
         }
         .tool-input::placeholder { color: #8ab4f8; }
         select.tool-input { cursor: pointer; }
+        optgroup { color: #555; font-weight: bold; font-style: normal; }
 
         .divider { border: none; height: 1px; background: rgba(0,0,0,0.08); margin: 4px 0; }
 
@@ -106,7 +107,7 @@
         button.export:hover { background: #5000d0; }
 
         /* Legend */
-        .legend { background: rgba(255, 255, 255, 0.5); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .legend { background: rgba(255, 255, 255, 0.6); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
         .legend h3 { margin: 0 0 10px 0; font-size: 14px; color: #333; font-weight: 600; }
         .legend-item { display: flex; align-items: center; font-size: 13px; color: #555; margin-bottom: 8px; }
         .legend-item:last-child { margin-bottom: 0; }
@@ -119,30 +120,42 @@
         }
         .custom-icon:hover { transform: scale(1.1); cursor: pointer; }
 
-        /* New Professional Text Label */
+        /* UPDATED: Boxless, Highly Legible Text Label */
         .map-text-label {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid #cbd5e1;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 700;
+            background: transparent;
+            border: none;
+            padding: 0;
+            font-size: 15px;
+            font-weight: 900;
             color: #1e293b;
             white-space: nowrap;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
             text-align: center;
             transition: transform 0.2s;
+            box-shadow: none;
+            /* White stroke effect for legibility on maps */
+            text-shadow: 
+                -1.5px -1.5px 0 #fff,  
+                 1.5px -1.5px 0 #fff,
+                -1.5px  1.5px 0 #fff,
+                 1.5px  1.5px 0 #fff,
+                 0px    2px   4px rgba(0,0,0,0.5);
         }
-        .map-text-label:hover { transform: scale(1.05); cursor: pointer; border-color: #1a73e8; }
+        .map-text-label:hover { transform: scale(1.1); cursor: pointer; }
 
-        /* New Professional Arrow */
+        /* UPDATED: Bolder Arrow Icons */
         .map-arrow-icon {
-            font-size: 26px;
+            font-size: 28px;
             font-weight: 900;
             text-align: center;
-            line-height: 26px;
-            filter: drop-shadow(0 2px 4px rgba(255,255,255,0.8)); /* White glow for visibility on dark maps */
+            line-height: 28px;
             transition: transform 0.2s;
+            /* White stroke effect for visibility */
+            text-shadow: 
+                -1.5px -1.5px 0 #fff,  
+                 1.5px -1.5px 0 #fff,
+                -1.5px  1.5px 0 #fff,
+                 1.5px  1.5px 0 #fff,
+                 0px    2px   4px rgba(0,0,0,0.5);
         }
         .map-arrow-icon:hover { transform: scale(1.2); cursor: pointer; }
 
@@ -191,14 +204,28 @@
                     <span class="icon">➔</span> Place Arrow
                 </button>
                 <select id="arrow-select" class="tool-input">
-                    <option value="↑">↑ Up</option>
-                    <option value="↗">↗ Up-Right</option>
-                    <option value="→">→ Right</option>
-                    <option value="↘">↘ Down-Right</option>
-                    <option value="↓">↓ Down</option>
-                    <option value="↙">↙ Down-Left</option>
-                    <option value="←">← Left</option>
-                    <option value="↖">↖ Up-Left</option>
+                    <optgroup label="Bold Arrows">
+                        <option value="⬆">⬆ Up</option>
+                        <option value="↗">↗ Up-Right</option>
+                        <option value="➡">➡ Right</option>
+                        <option value="↘">↘ Down-Right</option>
+                        <option value="⬇">⬇ Down</option>
+                        <option value="↙">↙ Down-Left</option>
+                        <option value="⬅">⬅ Left</option>
+                        <option value="↖">↖ Up-Left</option>
+                    </optgroup>
+                    <optgroup label="U-Turns & Curves">
+                        <option value="↩">↩ U-Turn Left</option>
+                        <option value="↪">↪ U-Turn Right</option>
+                        <option value="⤴">⤴ Curve Up-Right</option>
+                        <option value="⤵">⤵ Curve Down-Right</option>
+                    </optgroup>
+                    <optgroup label="Standard Arrows">
+                        <option value="↑">↑ Up Thin</option>
+                        <option value="→">→ Right Thin</option>
+                        <option value="↓">↓ Down Thin</option>
+                        <option value="←">← Left Thin</option>
+                    </optgroup>
                 </select>
             </div>
 
@@ -278,21 +305,18 @@
         function setMode(mode) {
             currentMode = mode;
             
-            // Reset UI
             document.querySelectorAll('.btn-group button').forEach(btn => {
                 btn.classList.remove('active');
-                btn.style.borderRadius = '8px'; // Reset rounding
+                btn.style.borderRadius = '8px';
             });
             document.querySelectorAll('.tool-input').forEach(input => input.style.display = 'none');
             
-            // Activate selected
             let activeBtn = document.getElementById(`btn-${mode}`);
             activeBtn.classList.add('active');
 
-            // Expand corresponding input if text or arrow
             if (mode === 'text') {
                 document.getElementById('label-input').style.display = 'block';
-                activeBtn.style.borderRadius = '8px 8px 0 0'; // Flatten bottom for seamless attach
+                activeBtn.style.borderRadius = '8px 8px 0 0';
                 document.getElementById('label-input').focus();
             } else if (mode === 'arrow') {
                 document.getElementById('arrow-select').style.display = 'block';
@@ -317,11 +341,11 @@
                 let icon = L.divIcon({
                     html: textVal,
                     className: 'map-text-label',
-                    iconSize: null, // Auto-size to text width
+                    iconSize: null,
                     iconAnchor: [0, 0]
                 });
                 placeMarker(e.latlng, icon, 'text', textVal);
-                document.getElementById('label-input').value = ''; // Auto-clear after placement
+                document.getElementById('label-input').value = ''; 
             } else if (currentMode === 'arrow') {
                 const arrowVal = document.getElementById('arrow-select').value;
                 const currentColor = document.getElementById('route-color').value;
@@ -329,8 +353,8 @@
                 let icon = L.divIcon({
                     html: `<span style="color:${currentColor}">${arrowVal}</span>`,
                     className: 'map-arrow-icon',
-                    iconSize: [26, 26],
-                    iconAnchor: [13, 13]
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
                 });
                 placeMarker(e.latlng, icon, 'arrow', arrowVal);
             } else {
@@ -338,7 +362,6 @@
             }
         });
 
-        // Helper function for all markers
         function placeMarker(latlng, icon, type, customText = '') {
             let marker = L.marker(latlng, { icon: icon, customType: type, customText: customText }).addTo(map);
             marker.on('click', function() {
@@ -392,11 +415,9 @@
         }
 
         function restoreState(state) {
-            // Restore Route
             routeCoordinates = state.route.map(ll => L.latLng(ll.lat, ll.lng));
             polyline.setLatLngs(routeCoordinates);
 
-            // Restore Markers (including dynamic text and color-coded arrows)
             markers.forEach(m => map.removeLayer(m));
             markers = [];
             
@@ -406,7 +427,7 @@
                     icon = L.divIcon({ html: mData.text, className: 'map-text-label', iconSize: null, iconAnchor: [0, 0] });
                 } else if (mData.type === 'arrow') {
                     const currentColor = document.getElementById('route-color').value;
-                    icon = L.divIcon({ html: `<span style="color:${currentColor}">${mData.text}</span>`, className: 'map-arrow-icon', iconSize: [26, 26], iconAnchor: [13, 13] });
+                    icon = L.divIcon({ html: `<span style="color:${currentColor}">${mData.text}</span>`, className: 'map-arrow-icon', iconSize: [28, 28], iconAnchor: [14, 14] });
                 } else {
                     icon = iconStyles[mData.type];
                 }
@@ -421,7 +442,7 @@
             });
         }
 
-        saveState(); // Initialize first state
+        saveState();
 
         // --- 5. EXPORT LOGIC ---
         function exportMap() {

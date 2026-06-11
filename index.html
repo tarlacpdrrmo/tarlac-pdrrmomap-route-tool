@@ -40,6 +40,8 @@
         .history-row button { flex: 1; justify-content: center; padding: 8px 12px; font-size: 13px; }
         .history-row button:disabled { opacity: 0.5; cursor: not-allowed; background: #f0f0f0; border-color: #ddd; color: #999; box-shadow: none; transform: none; }
 
+        .instruction { font-size: 13px; color: #444; margin-bottom: 12px; line-height: 1.4; }
+
         /* Modern Buttons & Inputs */
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
         .tool-wrapper { display: flex; flex-direction: column; }
@@ -81,7 +83,7 @@
         .export-section { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; margin-top: auto; }
         .export-section h4 { margin: 0 0 10px 0; font-size: 13px; color: #333; }
         .export-input { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; outline: none; margin-bottom: 8px; }
-        button.export { background: #6200ea; border-color: #6200ea; color: white; justify-content: center; margin-bottom: 0; }
+        button.export { background: #6200ea; border-color: #6200ea; color: white; justify-content: center; margin-bottom: 0; margin-top: 5px; }
         button.export:hover { background: #5000d0; }
         
         button.danger { background: #fff0f0; border-color: #ffcdd2; color: #d32f2f; margin-bottom: 15px; justify-content: center; }
@@ -108,16 +110,17 @@
         .leaflet-bar { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
         .leaflet-bar a { border-radius: 4px !important; margin-bottom: 2px; }
 
-        /* --- Dynamic Export Elements (Injected during export) --- */
-        .dynamic-export-title {
-            position: absolute; top: 30px; left: 0; width: 100%; text-align: center; z-index: 9999; pointer-events: none;
+        /* --- LIVE TITLE OVERLAY (Renders live on the map) --- */
+        .live-title-overlay {
+            position: absolute; top: 30px; left: 0; width: 100%; text-align: center; z-index: 9999; pointer-events: none; display: none;
         }
-        .dynamic-export-title span {
-            font-size: 38px; font-weight: 900; color: #1e293b;
+        .live-title-overlay span {
+            font-weight: 900; color: #1e293b; display: inline-block;
             text-shadow: -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 2px 2px 0 #fff, 0 6px 12px rgba(0,0,0,0.4);
-            padding: 10px 30px; border-radius: 8px; display: inline-block;
+            padding: 10px 30px; border-radius: 8px; 
         }
 
+        /* --- Dynamic Export Legend (Injected only during export) --- */
         .dynamic-export-legend {
             position: absolute; bottom: 40px; left: 40px; z-index: 9999;
             background: rgba(255, 255, 255, 0.95); border: 1px solid #cbd5e1; border-radius: 12px; padding: 15px 20px;
@@ -211,14 +214,20 @@
         <button class="danger" onclick="clearMap()"><span class="icon">🗑️</span> Clear Entire Map</button>
 
         <div class="export-section">
-            <h4>Export Settings</h4>
-            <input type="text" id="map-title" class="export-input" placeholder="Map Title (e.g., Tarlac 10K)">
-            <select id="map-font" class="export-input">
-                <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Modern (Sans-Serif)</option>
-                <option value="Georgia, 'Times New Roman', serif">Classic (Serif)</option>
-                <option value="Impact, fantasy">Bold (Impact)</option>
-                <option value="'Courier New', Courier, monospace">Technical (Monospace)</option>
-            </select>
+            <h4>Map Title & Export</h4>
+            <input type="text" id="map-title" class="export-input" placeholder="Type map title here...">
+            <div class="flex-row">
+                <select id="map-font" class="export-input" style="width: 65%; margin-bottom: 0;">
+                    <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Modern (Sans-Serif)</option>
+                    <option value="'Arial Black', Gadget, sans-serif">Ultra Bold</option>
+                    <option value="Georgia, 'Times New Roman', serif">Classic (Serif)</option>
+                    <option value="Impact, fantasy">Impact</option>
+                    <option value="'Courier New', Courier, monospace">Technical</option>
+                    <option value="'Trebuchet MS', Helvetica, sans-serif">Clean</option>
+                    <option value="'Brush Script MT', cursive">Script</option>
+                </select>
+                <input type="number" id="title-size-input" class="export-input" value="42" min="20" max="150" step="2" style="width: 30%; margin-bottom: 0;" title="Font Size (px)">
+            </div>
             <button class="export" id="exportBtn" onclick="exportMap()"><span class="icon">📸</span> Export Map to PNG</button>
         </div>
     </div>
@@ -231,21 +240,42 @@
             maxZoom: 20, maxNativeZoom: 17, attribution: '© Esri', crossOrigin: true
         });
 
-        // --- NEW: SMOOTH FRACTIONAL ZOOM SETTINGS ADDED HERE ---
+        // Map setup with smooth fractional zoom
         const map = L.map('map', { 
-            center: [15.4828, 120.5960], 
-            zoom: 12, 
-            layers: [streetLayer], 
-            zoomControl: false, 
-            preferCanvas: true,
-            zoomSnap: 0.1,             // Unlocks fractional zoom levels (e.g., 12.3 instead of rigid 12 or 13)
-            zoomDelta: 0.5,            // Halves the jump distance for standard zooming
-            wheelPxPerZoomLevel: 120   // Slows down the mouse wheel sensitivity (default is 60)
+            center: [15.4828, 120.5960], zoom: 12, layers: [streetLayer], zoomControl: false, preferCanvas: true,
+            zoomSnap: 0.1, zoomDelta: 0.5, wheelPxPerZoomLevel: 120 
         });
         
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.control.layers({ "Standard Streets": streetLayer, "Topographic Terrain": terrainLayer, "High-Res Satellite": satelliteLayer }, null, {position: 'topright'}).addTo(map);
 
+        // Append the Live Title Overlay to the map container natively
+        const liveTitleOverlay = document.createElement('div');
+        liveTitleOverlay.id = 'live-map-title';
+        liveTitleOverlay.className = 'live-title-overlay';
+        document.getElementById('map').appendChild(liveTitleOverlay);
+
+        // Function to update the title live on screen
+        function updateLiveTitle() {
+            const text = document.getElementById('map-title').value.trim();
+            const font = document.getElementById('map-font').value;
+            const size = document.getElementById('title-size-input').value || 42;
+
+            if (text === '') {
+                liveTitleOverlay.style.display = 'none';
+                liveTitleOverlay.innerHTML = '';
+            } else {
+                liveTitleOverlay.style.display = 'block';
+                liveTitleOverlay.innerHTML = `<span style="font-family: ${font}; font-size: ${size}px;">${text}</span>`;
+            }
+        }
+
+        // Attach listeners to trigger update instantly
+        document.getElementById('map-title').addEventListener('input', updateLiveTitle);
+        document.getElementById('map-font').addEventListener('change', updateLiveTitle);
+        document.getElementById('title-size-input').addEventListener('input', updateLiveTitle);
+
+        // Prevent UI interactions from bleeding into the map
         const uiPanel = document.getElementById('ui-panel');
         L.DomEvent.disableClickPropagation(uiPanel);
         L.DomEvent.disableScrollPropagation(uiPanel);
@@ -398,17 +428,6 @@
             if (zoomCtrl) zoomCtrl.style.display = 'none';
             if (layersCtrl) layersCtrl.style.display = 'none';
 
-            let titleDiv = null;
-            const titleText = document.getElementById('map-title').value.trim();
-            const titleFont = document.getElementById('map-font').value;
-            
-            if (titleText !== '') {
-                titleDiv = document.createElement('div');
-                titleDiv.className = 'dynamic-export-title';
-                titleDiv.innerHTML = `<span style="font-family: ${titleFont};">${titleText}</span>`;
-                mapElement.appendChild(titleDiv);
-            }
-
             let legendDiv = document.createElement('div');
             legendDiv.className = 'dynamic-export-legend';
             let legendHTML = `<h3>Map Legend</h3>`;
@@ -434,9 +453,9 @@
             .then(function (dataUrl) {
                 if (zoomCtrl) zoomCtrl.style.display = ''; 
                 if (layersCtrl) layersCtrl.style.display = ''; 
-                if (titleDiv) mapElement.removeChild(titleDiv);
                 if (legendDiv.parentNode) mapElement.removeChild(legendDiv);
 
+                const titleText = document.getElementById('map-title').value.trim();
                 const link = document.createElement('a');
                 link.download = (titleText ? titleText.replace(/ /g, '-') : 'tarlac-route-map') + '.png';
                 link.href = dataUrl;
@@ -448,7 +467,6 @@
             .catch(function (error) {
                 if (zoomCtrl) zoomCtrl.style.display = ''; 
                 if (layersCtrl) layersCtrl.style.display = ''; 
-                if (titleDiv) mapElement.removeChild(titleDiv);
                 if (legendDiv.parentNode) mapElement.removeChild(legendDiv);
                 
                 alert("Image export failed. Please ensure all map tiles have finished loading.");

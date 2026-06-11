@@ -55,13 +55,21 @@
         button:active:not(:disabled) { transform: translateY(0); }
         button.active { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1); }
 
-        .tool-input {
-            width: 100%; padding: 10px; margin-top: -2px; border: 1px solid #1a73e8; border-top: none;
-            border-radius: 0 0 8px 8px; font-size: 13px; outline: none; background: #f4f8ff; color: #1a73e8; font-weight: 500; display: none;
+        /* Sleek Extended Options Panel for Text & Arrows */
+        .options-panel {
+            display: none; background: #f4f8ff; border: 1px solid #1a73e8; border-top: none;
+            border-radius: 0 0 8px 8px; padding: 12px; margin-top: -2px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
         }
-        .tool-input::placeholder { color: #8ab4f8; }
-        select.tool-input { cursor: pointer; }
-        optgroup { color: #555; font-weight: bold; font-style: normal; }
+        .options-panel input[type="text"], .options-panel select {
+            width: 100%; padding: 8px 10px; border: 1px solid #cddc39; border-radius: 6px; 
+            border: 1px solid #b3d4ff; font-size: 13px; outline: none; margin-bottom: 10px; color: #1a73e8;
+        }
+        .options-panel input[type="text"]::placeholder { color: #8ab4f8; }
+        
+        .flex-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #444; font-weight: 500; }
+        .flex-row input[type="number"] { width: 60px; padding: 4px 8px; border: 1px solid #b3d4ff; border-radius: 4px; color: #1a73e8; outline: none; }
+        .flex-row input[type="range"] { flex-grow: 1; margin: 0 10px; cursor: pointer; accent-color: #1a73e8; }
+        #angle-val { font-weight: 700; color: #1a73e8; width: 35px; text-align: right; display: inline-block; }
 
         .divider { border: none; height: 1px; background: rgba(0,0,0,0.08); margin: 4px 0; }
 
@@ -83,21 +91,24 @@
         .legend-item:last-child { margin-bottom: 0; }
         .legend-item span { width: 24px; text-align: center; margin-right: 8px; font-size: 16px; }
 
+        /* --- Map Markers CSS --- */
         .custom-icon { font-size: 24px; text-align: center; line-height: 24px; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); transition: transform 0.2s; }
         .custom-icon:hover { transform: scale(1.1); cursor: pointer; }
 
         .map-text-label {
-            background: transparent; border: none; padding: 0; font-size: 15px; font-weight: 900; color: #1e293b;
+            background: transparent; border: none; padding: 0; font-weight: 900; color: #1e293b;
             white-space: nowrap; text-align: center; transition: transform 0.2s; box-shadow: none;
+            /* White stroke effect */
             text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0px 2px 4px rgba(0,0,0,0.5);
         }
-        .map-text-label:hover { transform: scale(1.1); cursor: pointer; }
+        .map-text-label:hover { transform: scale(1.05); cursor: pointer; }
 
         .map-arrow-icon {
-            font-size: 28px; font-weight: 900; text-align: center; line-height: 28px; transition: transform 0.2s;
+            font-weight: 900; text-align: center; transition: transform 0.2s;
+            /* White stroke effect */
             text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0px 2px 4px rgba(0,0,0,0.5);
         }
-        .map-arrow-icon:hover { transform: scale(1.2); cursor: pointer; }
+        .map-arrow-icon:hover { transform: scale(1.1); cursor: pointer; }
 
         .leaflet-control-layers { border: none !important; border-radius: 8px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
         .leaflet-bar { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
@@ -135,37 +146,51 @@
                 <button id="btn-text" onclick="setMode('text')">
                     <span class="icon">📝</span> Add Text Label
                 </button>
-                <input type="text" id="label-input" class="tool-input" placeholder="Type label, then click map...">
+                <div id="panel-text" class="options-panel">
+                    <input type="text" id="label-input" placeholder="Type label, then click map...">
+                    <div class="flex-row">
+                        <span>Font Size:</span>
+                        <input type="number" id="font-size-input" value="15" min="10" max="80" step="1">
+                        <span>px</span>
+                    </div>
+                </div>
             </div>
 
             <div class="tool-wrapper">
                 <button id="btn-arrow" onclick="setMode('arrow')">
                     <span class="icon">➔</span> Place Arrow
                 </button>
-                <select id="arrow-select" class="tool-input">
-                    <optgroup label="Bold Arrows">
-                        <option value="⬆">⬆ Up</option>
-                        <option value="↗">↗ Up-Right</option>
-                        <option value="➡">➡ Right</option>
-                        <option value="↘">↘ Down-Right</option>
-                        <option value="⬇">⬇ Down</option>
-                        <option value="↙">↙ Down-Left</option>
-                        <option value="⬅">⬅ Left</option>
-                        <option value="↖">↖ Up-Left</option>
-                    </optgroup>
-                    <optgroup label="U-Turns & Curves">
-                        <option value="↩">↩ U-Turn Left</option>
-                        <option value="↪">↪ U-Turn Right</option>
-                        <option value="⤴">⤴ Curve Up-Right</option>
-                        <option value="⤵">⤵ Curve Down-Right</option>
-                    </optgroup>
-                    <optgroup label="Standard Arrows">
-                        <option value="↑">↑ Up Thin</option>
-                        <option value="→">→ Right Thin</option>
-                        <option value="↓">↓ Down Thin</option>
-                        <option value="←">← Left Thin</option>
-                    </optgroup>
-                </select>
+                <div id="panel-arrow" class="options-panel">
+                    <select id="arrow-select">
+                        <optgroup label="Bold Arrows">
+                            <option value="⬆">⬆ Up</option>
+                            <option value="↗">↗ Up-Right</option>
+                            <option value="➡">➡ Right</option>
+                            <option value="↘">↘ Down-Right</option>
+                            <option value="⬇">⬇ Down</option>
+                            <option value="↙">↙ Down-Left</option>
+                            <option value="⬅">⬅ Left</option>
+                            <option value="↖">↖ Up-Left</option>
+                        </optgroup>
+                        <optgroup label="U-Turns & Curves">
+                            <option value="↩">↩ U-Turn Left</option>
+                            <option value="↪">↪ U-Turn Right</option>
+                            <option value="⤴">⤴ Curve Up-Right</option>
+                            <option value="⤵">⤵ Curve Down-Right</option>
+                        </optgroup>
+                        <optgroup label="Standard Arrows">
+                            <option value="↑">↑ Up Thin</option>
+                            <option value="→">→ Right Thin</option>
+                            <option value="↓">↓ Down Thin</option>
+                            <option value="←">← Left Thin</option>
+                        </optgroup>
+                    </select>
+                    <div class="flex-row">
+                        <span>Rotate:</span>
+                        <input type="range" id="arrow-rotation" min="0" max="360" value="0" oninput="document.getElementById('angle-val').innerText = this.value + '°'">
+                        <span id="angle-val">0°</span>
+                    </div>
+                </div>
             </div>
 
             <hr class="divider">
@@ -211,26 +236,20 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- 1. SET UP MAP LAYERS ---
         const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap', crossOrigin: true });
         const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap', crossOrigin: true });
         const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 20, maxNativeZoom: 17, attribution: '© Esri', crossOrigin: true
         });
 
-        // FIXED: preferCanvas: true completely solves the bug where lines shift or break during image export
-        const map = L.map('map', {
-            center: [15.4828, 120.5960], zoom: 12, layers: [streetLayer], zoomControl: false, preferCanvas: true 
-        });
+        const map = L.map('map', { center: [15.4828, 120.5960], zoom: 12, layers: [streetLayer], zoomControl: false, preferCanvas: true });
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.control.layers({ "Standard Streets": streetLayer, "Topographic Terrain": terrainLayer, "High-Res Satellite": satelliteLayer }, null, {position: 'topright'}).addTo(map);
 
-        // FIXED: Stop clicks on the UI panel from passing through to the map and drawing stray lines!
         const uiPanel = document.getElementById('ui-panel');
         L.DomEvent.disableClickPropagation(uiPanel);
         L.DomEvent.disableScrollPropagation(uiPanel);
 
-        // --- 2. STATE, ICONS & HISTORY ---
         let currentMode = 'route';
         let routeCoordinates = [];
         let markers = [];
@@ -246,25 +265,21 @@
             medical: L.divIcon({ html: '<span style="color:#d32f2f; font-weight:900;">✚</span>', className: 'custom-icon', iconSize: [24, 24], iconAnchor: [12, 24] })
         };
 
-        // --- 3. UI INTERACTIONS ---
         function setMode(mode) {
             currentMode = mode;
             
-            document.querySelectorAll('.btn-group button').forEach(btn => {
-                btn.classList.remove('active');
-                btn.style.borderRadius = '8px';
-            });
-            document.querySelectorAll('.tool-input').forEach(input => input.style.display = 'none');
+            document.querySelectorAll('.btn-group button').forEach(btn => { btn.classList.remove('active'); btn.style.borderRadius = '8px'; });
+            document.querySelectorAll('.options-panel').forEach(panel => panel.style.display = 'none');
             
             let activeBtn = document.getElementById(`btn-${mode}`);
             activeBtn.classList.add('active');
 
             if (mode === 'text') {
-                document.getElementById('label-input').style.display = 'block';
+                document.getElementById('panel-text').style.display = 'block';
                 activeBtn.style.borderRadius = '8px 8px 0 0';
                 document.getElementById('label-input').focus();
             } else if (mode === 'arrow') {
-                document.getElementById('arrow-select').style.display = 'block';
+                document.getElementById('panel-arrow').style.display = 'block';
                 activeBtn.style.borderRadius = '8px 8px 0 0';
             }
         }
@@ -281,24 +296,37 @@
                 saveState();
             } else if (currentMode === 'text') {
                 const textVal = document.getElementById('label-input').value.trim();
+                const fontSize = document.getElementById('font-size-input').value || 15;
                 if (!textVal) return alert("Please type your text label in the side panel first.");
                 
-                let icon = L.divIcon({ html: textVal, className: 'map-text-label', iconSize: null, iconAnchor: [0, 0] });
-                placeMarker(e.latlng, icon, 'text', textVal);
+                let icon = L.divIcon({
+                    html: `<div style="font-size: ${fontSize}px;">${textVal}</div>`,
+                    className: 'map-text-label',
+                    iconSize: null,
+                    iconAnchor: [0, 0]
+                });
+                placeMarker(e.latlng, icon, 'text', textVal, { size: fontSize });
                 document.getElementById('label-input').value = ''; 
             } else if (currentMode === 'arrow') {
                 const arrowVal = document.getElementById('arrow-select').value;
                 const currentColor = document.getElementById('route-color').value;
+                const rotation = document.getElementById('arrow-rotation').value || 0;
                 
-                let icon = L.divIcon({ html: `<span style="color:${currentColor}">${arrowVal}</span>`, className: 'map-arrow-icon', iconSize: [28, 28], iconAnchor: [14, 14] });
-                placeMarker(e.latlng, icon, 'arrow', arrowVal);
+                let icon = L.divIcon({
+                    html: `<div style="color:${currentColor}; font-size:28px; transform: rotate(${rotation}deg); display:inline-block;">${arrowVal}</div>`,
+                    className: 'map-arrow-icon',
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+                placeMarker(e.latlng, icon, 'arrow', arrowVal, { rot: rotation });
             } else {
                 placeMarker(e.latlng, iconStyles[currentMode], currentMode);
             }
         });
 
-        function placeMarker(latlng, icon, type, customText = '') {
-            let marker = L.marker(latlng, { icon: icon, customType: type, customText: customText }).addTo(map);
+        // Updated placeMarker to accept extra styling data
+        function placeMarker(latlng, icon, type, customText = '', extraData = {}) {
+            let marker = L.marker(latlng, { icon: icon, customType: type, customText: customText, extraData: extraData }).addTo(map);
             marker.on('click', function() {
                 map.removeLayer(marker);
                 markers = markers.filter(m => m !== marker);
@@ -323,7 +351,12 @@
             if (historyIndex < historyStack.length - 1) { historyStack = historyStack.slice(0, historyIndex + 1); }
             const currentState = {
                 route: routeCoordinates.map(ll => L.latLng(ll.lat, ll.lng)),
-                markers: markers.map(m => ({ latlng: L.latLng(m.getLatLng().lat, m.getLatLng().lng), type: m.options.customType, text: m.options.customText }))
+                markers: markers.map(m => ({ 
+                    latlng: L.latLng(m.getLatLng().lat, m.getLatLng().lng), 
+                    type: m.options.customType, 
+                    text: m.options.customText,
+                    extraData: m.options.extraData
+                }))
             };
             historyStack.push(currentState);
             historyIndex++;
@@ -348,15 +381,17 @@
             state.markers.forEach(mData => {
                 let icon;
                 if (mData.type === 'text') {
-                    icon = L.divIcon({ html: mData.text, className: 'map-text-label', iconSize: null, iconAnchor: [0, 0] });
+                    const size = mData.extraData.size || 15;
+                    icon = L.divIcon({ html: `<div style="font-size: ${size}px;">${mData.text}</div>`, className: 'map-text-label', iconSize: null, iconAnchor: [0, 0] });
                 } else if (mData.type === 'arrow') {
+                    const rot = mData.extraData.rot || 0;
                     const currentColor = document.getElementById('route-color').value;
-                    icon = L.divIcon({ html: `<span style="color:${currentColor}">${mData.text}</span>`, className: 'map-arrow-icon', iconSize: [28, 28], iconAnchor: [14, 14] });
+                    icon = L.divIcon({ html: `<div style="color:${currentColor}; font-size:28px; transform: rotate(${rot}deg); display:inline-block;">${mData.text}</div>`, className: 'map-arrow-icon', iconSize: [28, 28], iconAnchor: [14, 14] });
                 } else {
                     icon = iconStyles[mData.type];
                 }
 
-                let marker = L.marker(mData.latlng, { icon: icon, customType: mData.type, customText: mData.text }).addTo(map);
+                let marker = L.marker(mData.latlng, { icon: icon, customType: mData.type, customText: mData.text, extraData: mData.extraData }).addTo(map);
                 marker.on('click', function() { map.removeLayer(marker); markers = markers.filter(m => m !== marker); saveState(); });
                 markers.push(marker);
             });

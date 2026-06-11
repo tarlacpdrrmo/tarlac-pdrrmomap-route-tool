@@ -6,7 +6,6 @@
     <title>Map Routing Tool</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
@@ -48,9 +47,7 @@
 
         /* Undo / Redo Row */
         .history-row { display: flex; gap: 8px; margin-bottom: 15px; }
-        .history-row button {
-            flex: 1; justify-content: center; padding: 8px 12px; font-size: 13px;
-        }
+        .history-row button { flex: 1; justify-content: center; padding: 8px 12px; font-size: 13px; }
         .history-row button:disabled {
             opacity: 0.5; cursor: not-allowed; background: #f0f0f0; border-color: #ddd; color: #999;
             box-shadow: none; transform: none;
@@ -59,8 +56,10 @@
         /* Tool Instructions */
         .instruction { font-size: 13px; color: #444; margin-bottom: 12px; line-height: 1.4; }
 
-        /* Modern Buttons */
+        /* Modern Buttons & Inputs */
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        .tool-wrapper { display: flex; flex-direction: column; }
+        
         button {
             display: flex; align-items: center; justify-content: flex-start;
             width: 100%; padding: 10px 14px;
@@ -70,10 +69,23 @@
             cursor: pointer; transition: all 0.2s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-        button span.icon { margin-right: 10px; font-size: 16px; }
+        button span.icon { margin-right: 10px; font-size: 16px; width: 20px; text-align: center; }
         button:hover:not(:disabled) { background: #f8f9fa; border-color: #ccc; transform: translateY(-1px); }
         button:active:not(:disabled) { transform: translateY(0); }
         button.active { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1); }
+
+        /* Sleek Expanding Inputs for Text and Arrows */
+        .tool-input {
+            width: 100%; padding: 10px; margin-top: -2px;
+            border: 1px solid #1a73e8; border-top: none;
+            border-radius: 0 0 8px 8px; font-size: 13px; outline: none;
+            background: #f4f8ff; color: #1a73e8; font-weight: 500;
+            display: none; /* Hidden by default */
+        }
+        .tool-input::placeholder { color: #8ab4f8; }
+        select.tool-input { cursor: pointer; }
+
+        .divider { border: none; height: 1px; background: rgba(0,0,0,0.08); margin: 4px 0; }
 
         /* Color Picker Settings */
         .settings-row {
@@ -87,11 +99,9 @@
             cursor: pointer; padding: 0; background: none;
         }
 
-        /* Danger Button */
+        /* Danger & Export Buttons */
         button.danger { background: #fff0f0; border-color: #ffcdd2; color: #d32f2f; margin-bottom: 20px; justify-content: center; }
         button.danger:hover { background: #ffebee; border-color: #ef9a9a; }
-
-        /* Export Button */
         button.export { background: #6200ea; border-color: #6200ea; color: white; justify-content: center; margin-top: auto; }
         button.export:hover { background: #5000d0; }
 
@@ -102,13 +112,41 @@
         .legend-item:last-child { margin-bottom: 0; }
         .legend-item span { width: 24px; text-align: center; margin-right: 8px; font-size: 16px; }
 
-        /* Custom Map Icons */
+        /* --- Map Markers CSS --- */
         .custom-icon {
             font-size: 24px; text-align: center; line-height: 24px;
-            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
-            transition: transform 0.2s;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); transition: transform 0.2s;
         }
         .custom-icon:hover { transform: scale(1.1); cursor: pointer; }
+
+        /* New Professional Text Label */
+        .map-text-label {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e293b;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .map-text-label:hover { transform: scale(1.05); cursor: pointer; border-color: #1a73e8; }
+
+        /* New Professional Arrow */
+        .map-arrow-icon {
+            font-size: 26px;
+            font-weight: 900;
+            text-align: center;
+            line-height: 26px;
+            filter: drop-shadow(0 2px 4px rgba(255,255,255,0.8)); /* White glow for visibility on dark maps */
+            transition: transform 0.2s;
+        }
+        .map-arrow-icon:hover { transform: scale(1.2); cursor: pointer; }
+
+        /* Leaflet Controls Fix */
         .leaflet-control-layers { border: none !important; border-radius: 8px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
         .leaflet-bar { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
         .leaflet-bar a { border-radius: 4px !important; margin-bottom: 2px; }
@@ -132,12 +170,40 @@
             <button id="btn-redo" onclick="redo()" disabled><span class="icon">↪️</span> Redo</button>
         </div>
 
-        <p class="instruction">Select a tool below, then click on the map.</p>
+        <p class="instruction">Select a tool below, configure it, then click the map.</p>
         
         <div class="btn-group">
             <button id="btn-route" class="active" onclick="setMode('route')">
                 <span class="icon">🖊️</span> Draw Route Line
             </button>
+            
+            <hr class="divider">
+
+            <div class="tool-wrapper">
+                <button id="btn-text" onclick="setMode('text')">
+                    <span class="icon">📝</span> Add Text Label
+                </button>
+                <input type="text" id="label-input" class="tool-input" placeholder="Type label, then click map...">
+            </div>
+
+            <div class="tool-wrapper">
+                <button id="btn-arrow" onclick="setMode('arrow')">
+                    <span class="icon">➔</span> Place Arrow
+                </button>
+                <select id="arrow-select" class="tool-input">
+                    <option value="↑">↑ Up</option>
+                    <option value="↗">↗ Up-Right</option>
+                    <option value="→">→ Right</option>
+                    <option value="↘">↘ Down-Right</option>
+                    <option value="↓">↓ Down</option>
+                    <option value="↙">↙ Down-Left</option>
+                    <option value="←">← Left</option>
+                    <option value="↖">↖ Up-Left</option>
+                </select>
+            </div>
+
+            <hr class="divider">
+
             <button id="btn-start" onclick="setMode('start')">
                 <span class="icon">🏁</span> Place Start Line
             </button>
@@ -153,7 +219,7 @@
         </div>
 
         <div class="settings-row">
-            <label for="route-color">Route Line Color:</label>
+            <label for="route-color">Route / Arrow Color:</label>
             <input type="color" id="route-color" value="#1a73e8" onchange="changeLineColor(this.value)">
         </div>
 
@@ -164,6 +230,8 @@
         <div class="legend">
             <h3>Map Legend</h3>
             <div class="legend-item"><span id="legend-color-dot" style="color:#1a73e8;">●</span> Route Path</div>
+            <div class="legend-item"><span>📝</span> Text Label</div>
+            <div class="legend-item"><span>➔</span> Direction Arrow</div>
             <div class="legend-item"><span>🏁</span> Start Line</div>
             <div class="legend-item"><span>🏆</span> Finish Line</div>
             <div class="legend-item"><span>💧</span> Water Station</div>
@@ -196,7 +264,6 @@
         let markers = [];
         let polyline = L.polyline([], {color: '#1a73e8', weight: 6, opacity: 0.8, lineCap: 'round', lineJoin: 'round'}).addTo(map);
         
-        // History Variables
         let historyStack = [];
         let historyIndex = -1;
 
@@ -210,11 +277,29 @@
         // --- 3. UI INTERACTIONS ---
         function setMode(mode) {
             currentMode = mode;
-            document.querySelectorAll('.btn-group button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`btn-${mode}`).classList.add('active');
+            
+            // Reset UI
+            document.querySelectorAll('.btn-group button').forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.borderRadius = '8px'; // Reset rounding
+            });
+            document.querySelectorAll('.tool-input').forEach(input => input.style.display = 'none');
+            
+            // Activate selected
+            let activeBtn = document.getElementById(`btn-${mode}`);
+            activeBtn.classList.add('active');
+
+            // Expand corresponding input if text or arrow
+            if (mode === 'text') {
+                document.getElementById('label-input').style.display = 'block';
+                activeBtn.style.borderRadius = '8px 8px 0 0'; // Flatten bottom for seamless attach
+                document.getElementById('label-input').focus();
+            } else if (mode === 'arrow') {
+                document.getElementById('arrow-select').style.display = 'block';
+                activeBtn.style.borderRadius = '8px 8px 0 0';
+            }
         }
 
-        // Change Line Color
         function changeLineColor(colorHex) {
             polyline.setStyle({ color: colorHex });
             document.getElementById('legend-color-dot').style.color = colorHex;
@@ -224,41 +309,70 @@
             if (currentMode === 'route') {
                 routeCoordinates.push(e.latlng);
                 polyline.setLatLngs(routeCoordinates);
-            } else {
-                let marker = L.marker(e.latlng, { icon: iconStyles[currentMode], customType: currentMode }).addTo(map);
-                marker.on('click', function() {
-                    map.removeLayer(marker);
-                    markers = markers.filter(m => m !== marker);
-                    saveState(); // Save state when marker deleted
+                saveState();
+            } else if (currentMode === 'text') {
+                const textVal = document.getElementById('label-input').value.trim();
+                if (!textVal) return alert("Please type your text label in the side panel first.");
+                
+                let icon = L.divIcon({
+                    html: textVal,
+                    className: 'map-text-label',
+                    iconSize: null, // Auto-size to text width
+                    iconAnchor: [0, 0]
                 });
-                markers.push(marker);
+                placeMarker(e.latlng, icon, 'text', textVal);
+                document.getElementById('label-input').value = ''; // Auto-clear after placement
+            } else if (currentMode === 'arrow') {
+                const arrowVal = document.getElementById('arrow-select').value;
+                const currentColor = document.getElementById('route-color').value;
+                
+                let icon = L.divIcon({
+                    html: `<span style="color:${currentColor}">${arrowVal}</span>`,
+                    className: 'map-arrow-icon',
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
+                });
+                placeMarker(e.latlng, icon, 'arrow', arrowVal);
+            } else {
+                placeMarker(e.latlng, iconStyles[currentMode], currentMode);
             }
-            saveState(); // Save state on every click action
         });
 
+        // Helper function for all markers
+        function placeMarker(latlng, icon, type, customText = '') {
+            let marker = L.marker(latlng, { icon: icon, customType: type, customText: customText }).addTo(map);
+            marker.on('click', function() {
+                map.removeLayer(marker);
+                markers = markers.filter(m => m !== marker);
+                saveState();
+            });
+            markers.push(marker);
+            saveState();
+        }
+
         function clearMap() {
-            if(confirm("Are you sure you want to clear the entire route and all stations?")) {
+            if(confirm("Are you sure you want to clear the entire route and all items?")) {
                 routeCoordinates = [];
                 polyline.setLatLngs([]);
                 markers.forEach(marker => map.removeLayer(marker));
                 markers = [];
-                saveState(); // Save the cleared state
+                saveState();
             }
         }
 
         // --- 4. UNDO / REDO LOGIC ---
         function saveState() {
-            // Discard "future" redos if a new action is taken
             if (historyIndex < historyStack.length - 1) {
                 historyStack = historyStack.slice(0, historyIndex + 1);
             }
-            
-            // Deep copy current state
             const currentState = {
                 route: routeCoordinates.map(ll => L.latLng(ll.lat, ll.lng)),
-                markers: markers.map(m => ({ latlng: L.latLng(m.getLatLng().lat, m.getLatLng().lng), type: m.options.customType }))
+                markers: markers.map(m => ({ 
+                    latlng: L.latLng(m.getLatLng().lat, m.getLatLng().lng), 
+                    type: m.options.customType,
+                    text: m.options.customText
+                }))
             };
-            
             historyStack.push(currentState);
             historyIndex++;
             updateHistoryButtons();
@@ -270,32 +384,34 @@
         }
 
         function undo() {
-            if (historyIndex > 0) {
-                historyIndex--;
-                restoreState(historyStack[historyIndex]);
-                updateHistoryButtons();
-            }
+            if (historyIndex > 0) { historyIndex--; restoreState(historyStack[historyIndex]); updateHistoryButtons(); }
         }
 
         function redo() {
-            if (historyIndex < historyStack.length - 1) {
-                historyIndex++;
-                restoreState(historyStack[historyIndex]);
-                updateHistoryButtons();
-            }
+            if (historyIndex < historyStack.length - 1) { historyIndex++; restoreState(historyStack[historyIndex]); updateHistoryButtons(); }
         }
 
         function restoreState(state) {
-            // 1. Restore Route
+            // Restore Route
             routeCoordinates = state.route.map(ll => L.latLng(ll.lat, ll.lng));
             polyline.setLatLngs(routeCoordinates);
 
-            // 2. Restore Markers
+            // Restore Markers (including dynamic text and color-coded arrows)
             markers.forEach(m => map.removeLayer(m));
             markers = [];
             
             state.markers.forEach(mData => {
-                let marker = L.marker(mData.latlng, { icon: iconStyles[mData.type], customType: mData.type }).addTo(map);
+                let icon;
+                if (mData.type === 'text') {
+                    icon = L.divIcon({ html: mData.text, className: 'map-text-label', iconSize: null, iconAnchor: [0, 0] });
+                } else if (mData.type === 'arrow') {
+                    const currentColor = document.getElementById('route-color').value;
+                    icon = L.divIcon({ html: `<span style="color:${currentColor}">${mData.text}</span>`, className: 'map-arrow-icon', iconSize: [26, 26], iconAnchor: [13, 13] });
+                } else {
+                    icon = iconStyles[mData.type];
+                }
+
+                let marker = L.marker(mData.latlng, { icon: icon, customType: mData.type, customText: mData.text }).addTo(map);
                 marker.on('click', function() {
                     map.removeLayer(marker);
                     markers = markers.filter(m => m !== marker);
@@ -305,8 +421,7 @@
             });
         }
 
-        // Initialize first empty state
-        saveState();
+        saveState(); // Initialize first state
 
         // --- 5. EXPORT LOGIC ---
         function exportMap() {

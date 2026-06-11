@@ -6,7 +6,6 @@
     <title>Map Routing Tool</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
     
     <style>
@@ -15,33 +14,23 @@
         body, html {
             margin: 0; padding: 0; height: 100%; width: 100%;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
-            background-color: #e9ecef;
+            overflow: hidden; background-color: #e9ecef;
         }
 
-        /* Map takes full screen behind UI */
-        #map {
-            position: absolute; top: 0; left: 0;
-            width: 100vw; height: 100vh; z-index: 1;
-        }
+        #map { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
 
         /* Floating Frosted Glass UI Panel */
         #ui-panel {
             position: absolute; top: 20px; left: 20px; width: 320px;
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 16px; padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            z-index: 1000; display: flex; flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 16px; padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); z-index: 1000; display: flex; flex-direction: column;
             max-height: calc(100vh - 40px); overflow-y: auto;
         }
 
         /* Header / Branding */
-        .header {
-            display: flex; align-items: center; margin-bottom: 15px;
-            padding-bottom: 15px; border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
+        .header { display: flex; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(0, 0, 0, 0.1); }
         .header-icon { font-size: 28px; margin-right: 12px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
         .header-text h1 { margin: 0; font-size: 16px; font-weight: 700; color: #1a1a1a; letter-spacing: 0.5px; }
         .header-text p { margin: 2px 0 0 0; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -49,39 +38,26 @@
         /* Undo / Redo Row */
         .history-row { display: flex; gap: 8px; margin-bottom: 15px; }
         .history-row button { flex: 1; justify-content: center; padding: 8px 12px; font-size: 13px; }
-        .history-row button:disabled {
-            opacity: 0.5; cursor: not-allowed; background: #f0f0f0; border-color: #ddd; color: #999;
-            box-shadow: none; transform: none;
-        }
+        .history-row button:disabled { opacity: 0.5; cursor: not-allowed; background: #f0f0f0; border-color: #ddd; color: #999; box-shadow: none; transform: none; }
 
-        /* Tool Instructions */
         .instruction { font-size: 13px; color: #444; margin-bottom: 12px; line-height: 1.4; }
 
         /* Modern Buttons & Inputs */
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
         .tool-wrapper { display: flex; flex-direction: column; }
-        
         button {
-            display: flex; align-items: center; justify-content: flex-start;
-            width: 100%; padding: 10px 14px;
-            border: 1px solid #e0e0e0; border-radius: 8px;
-            background: #ffffff; color: #333;
-            font-size: 14px; font-weight: 500;
-            cursor: pointer; transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: flex; align-items: center; justify-content: flex-start; width: 100%; padding: 10px 14px;
+            border: 1px solid #e0e0e0; border-radius: 8px; background: #ffffff; color: #333;
+            font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
         button span.icon { margin-right: 10px; font-size: 16px; width: 20px; text-align: center; }
         button:hover:not(:disabled) { background: #f8f9fa; border-color: #ccc; transform: translateY(-1px); }
         button:active:not(:disabled) { transform: translateY(0); }
         button.active { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1); }
 
-        /* Sleek Expanding Inputs for Text and Arrows */
         .tool-input {
-            width: 100%; padding: 10px; margin-top: -2px;
-            border: 1px solid #1a73e8; border-top: none;
-            border-radius: 0 0 8px 8px; font-size: 13px; outline: none;
-            background: #f4f8ff; color: #1a73e8; font-weight: 500;
-            display: none;
+            width: 100%; padding: 10px; margin-top: -2px; border: 1px solid #1a73e8; border-top: none;
+            border-radius: 0 0 8px 8px; font-size: 13px; outline: none; background: #f4f8ff; color: #1a73e8; font-weight: 500; display: none;
         }
         .tool-input::placeholder { color: #8ab4f8; }
         select.tool-input { cursor: pointer; }
@@ -89,76 +65,40 @@
 
         .divider { border: none; height: 1px; background: rgba(0,0,0,0.08); margin: 4px 0; }
 
-        /* Color Picker Settings */
         .settings-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 14px; background: #fff; border: 1px solid #e0e0e0;
+            display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #fff; border: 1px solid #e0e0e0;
             border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
         .settings-row label { font-size: 14px; font-weight: 500; color: #333; }
-        .settings-row input[type="color"] {
-            border: none; border-radius: 4px; width: 32px; height: 32px;
-            cursor: pointer; padding: 0; background: none;
-        }
+        .settings-row input[type="color"] { border: none; border-radius: 4px; width: 32px; height: 32px; cursor: pointer; padding: 0; background: none; }
 
-        /* Danger & Export Buttons */
         button.danger { background: #fff0f0; border-color: #ffcdd2; color: #d32f2f; margin-bottom: 20px; justify-content: center; }
         button.danger:hover { background: #ffebee; border-color: #ef9a9a; }
         button.export { background: #6200ea; border-color: #6200ea; color: white; justify-content: center; margin-top: auto; }
         button.export:hover { background: #5000d0; }
 
-        /* Legend */
         .legend { background: rgba(255, 255, 255, 0.6); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
         .legend h3 { margin: 0 0 10px 0; font-size: 14px; color: #333; font-weight: 600; }
         .legend-item { display: flex; align-items: center; font-size: 13px; color: #555; margin-bottom: 8px; }
         .legend-item:last-child { margin-bottom: 0; }
         .legend-item span { width: 24px; text-align: center; margin-right: 8px; font-size: 16px; }
 
-        /* --- Map Markers CSS --- */
-        .custom-icon {
-            font-size: 24px; text-align: center; line-height: 24px;
-            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); transition: transform 0.2s;
-        }
+        .custom-icon { font-size: 24px; text-align: center; line-height: 24px; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); transition: transform 0.2s; }
         .custom-icon:hover { transform: scale(1.1); cursor: pointer; }
 
-        /* Boxless, Highly Legible Text Label */
         .map-text-label {
-            background: transparent;
-            border: none;
-            padding: 0;
-            font-size: 15px;
-            font-weight: 900;
-            color: #1e293b;
-            white-space: nowrap;
-            text-align: center;
-            transition: transform 0.2s;
-            box-shadow: none;
-            text-shadow: 
-                -1.5px -1.5px 0 #fff,  
-                 1.5px -1.5px 0 #fff,
-                -1.5px  1.5px 0 #fff,
-                 1.5px  1.5px 0 #fff,
-                 0px    2px   4px rgba(0,0,0,0.5);
+            background: transparent; border: none; padding: 0; font-size: 15px; font-weight: 900; color: #1e293b;
+            white-space: nowrap; text-align: center; transition: transform 0.2s; box-shadow: none;
+            text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0px 2px 4px rgba(0,0,0,0.5);
         }
         .map-text-label:hover { transform: scale(1.1); cursor: pointer; }
 
-        /* Bolder Arrow Icons */
         .map-arrow-icon {
-            font-size: 28px;
-            font-weight: 900;
-            text-align: center;
-            line-height: 28px;
-            transition: transform 0.2s;
-            text-shadow: 
-                -1.5px -1.5px 0 #fff,  
-                 1.5px -1.5px 0 #fff,
-                -1.5px  1.5px 0 #fff,
-                 1.5px  1.5px 0 #fff,
-                 0px    2px   4px rgba(0,0,0,0.5);
+            font-size: 28px; font-weight: 900; text-align: center; line-height: 28px; transition: transform 0.2s;
+            text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0px 2px 4px rgba(0,0,0,0.5);
         }
         .map-arrow-icon:hover { transform: scale(1.2); cursor: pointer; }
 
-        /* Leaflet Controls Fix */
         .leaflet-control-layers { border: none !important; border-radius: 8px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
         .leaflet-bar { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
         .leaflet-bar a { border-radius: 4px !important; margin-bottom: 2px; }
@@ -271,18 +211,24 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- 1. SET UP MAP LAYERS (Added crossOrigin: true for clean exports) ---
+        // --- 1. SET UP MAP LAYERS ---
         const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap', crossOrigin: true });
         const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap', crossOrigin: true });
         const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 20, maxNativeZoom: 17, attribution: '© Esri', crossOrigin: true
         });
 
+        // FIXED: preferCanvas: true completely solves the bug where lines shift or break during image export
         const map = L.map('map', {
-            center: [15.4828, 120.5960], zoom: 12, layers: [streetLayer], zoomControl: false
+            center: [15.4828, 120.5960], zoom: 12, layers: [streetLayer], zoomControl: false, preferCanvas: true 
         });
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.control.layers({ "Standard Streets": streetLayer, "Topographic Terrain": terrainLayer, "High-Res Satellite": satelliteLayer }, null, {position: 'topright'}).addTo(map);
+
+        // FIXED: Stop clicks on the UI panel from passing through to the map and drawing stray lines!
+        const uiPanel = document.getElementById('ui-panel');
+        L.DomEvent.disableClickPropagation(uiPanel);
+        L.DomEvent.disableScrollPropagation(uiPanel);
 
         // --- 2. STATE, ICONS & HISTORY ---
         let currentMode = 'route';
@@ -337,24 +283,14 @@
                 const textVal = document.getElementById('label-input').value.trim();
                 if (!textVal) return alert("Please type your text label in the side panel first.");
                 
-                let icon = L.divIcon({
-                    html: textVal,
-                    className: 'map-text-label',
-                    iconSize: null,
-                    iconAnchor: [0, 0]
-                });
+                let icon = L.divIcon({ html: textVal, className: 'map-text-label', iconSize: null, iconAnchor: [0, 0] });
                 placeMarker(e.latlng, icon, 'text', textVal);
                 document.getElementById('label-input').value = ''; 
             } else if (currentMode === 'arrow') {
                 const arrowVal = document.getElementById('arrow-select').value;
                 const currentColor = document.getElementById('route-color').value;
                 
-                let icon = L.divIcon({
-                    html: `<span style="color:${currentColor}">${arrowVal}</span>`,
-                    className: 'map-arrow-icon',
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 14]
-                });
+                let icon = L.divIcon({ html: `<span style="color:${currentColor}">${arrowVal}</span>`, className: 'map-arrow-icon', iconSize: [28, 28], iconAnchor: [14, 14] });
                 placeMarker(e.latlng, icon, 'arrow', arrowVal);
             } else {
                 placeMarker(e.latlng, iconStyles[currentMode], currentMode);
@@ -384,16 +320,10 @@
 
         // --- 4. UNDO / REDO LOGIC ---
         function saveState() {
-            if (historyIndex < historyStack.length - 1) {
-                historyStack = historyStack.slice(0, historyIndex + 1);
-            }
+            if (historyIndex < historyStack.length - 1) { historyStack = historyStack.slice(0, historyIndex + 1); }
             const currentState = {
                 route: routeCoordinates.map(ll => L.latLng(ll.lat, ll.lng)),
-                markers: markers.map(m => ({ 
-                    latlng: L.latLng(m.getLatLng().lat, m.getLatLng().lng), 
-                    type: m.options.customType,
-                    text: m.options.customText
-                }))
+                markers: markers.map(m => ({ latlng: L.latLng(m.getLatLng().lat, m.getLatLng().lng), type: m.options.customType, text: m.options.customText }))
             };
             historyStack.push(currentState);
             historyIndex++;
@@ -405,13 +335,8 @@
             document.getElementById('btn-redo').disabled = historyIndex >= historyStack.length - 1;
         }
 
-        function undo() {
-            if (historyIndex > 0) { historyIndex--; restoreState(historyStack[historyIndex]); updateHistoryButtons(); }
-        }
-
-        function redo() {
-            if (historyIndex < historyStack.length - 1) { historyIndex++; restoreState(historyStack[historyIndex]); updateHistoryButtons(); }
-        }
+        function undo() { if (historyIndex > 0) { historyIndex--; restoreState(historyStack[historyIndex]); updateHistoryButtons(); } }
+        function redo() { if (historyIndex < historyStack.length - 1) { historyIndex++; restoreState(historyStack[historyIndex]); updateHistoryButtons(); } }
 
         function restoreState(state) {
             routeCoordinates = state.route.map(ll => L.latLng(ll.lat, ll.lng));
@@ -432,18 +357,14 @@
                 }
 
                 let marker = L.marker(mData.latlng, { icon: icon, customType: mData.type, customText: mData.text }).addTo(map);
-                marker.on('click', function() {
-                    map.removeLayer(marker);
-                    markers = markers.filter(m => m !== marker);
-                    saveState();
-                });
+                marker.on('click', function() { map.removeLayer(marker); markers = markers.filter(m => m !== marker); saveState(); });
                 markers.push(marker);
             });
         }
 
         saveState();
 
-        // --- 5. UPDATED EXPORT LOGIC WITH DOM-TO-IMAGE ---
+        // --- 5. EXPORT LOGIC ---
         function exportMap() {
             const mapElement = document.getElementById('map');
             const btn = document.getElementById('exportBtn');
@@ -452,35 +373,23 @@
             btn.innerHTML = "<span class='icon'>⏳</span> Generating...";
             btn.disabled = true;
 
-            // Temporarily hide Leaflet controls (zoom buttons, layer switch) for a clean export
             const controls = document.querySelector('.leaflet-control-container');
             if (controls) controls.style.display = 'none';
 
-            // Use domtoimage to take a high-quality capture that respects 3D transforms
-            domtoimage.toPng(mapElement, {
-                width: mapElement.clientWidth,
-                height: mapElement.clientHeight
-            })
+            domtoimage.toPng(mapElement, { width: mapElement.clientWidth, height: mapElement.clientHeight })
             .then(function (dataUrl) {
-                // Restore controls
                 if (controls) controls.style.display = 'block'; 
-                
-                // Trigger download
                 const link = document.createElement('a');
                 link.download = 'tarlac-route-map.png';
                 link.href = dataUrl;
                 link.click();
-                
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
             })
             .catch(function (error) {
-                // Restore controls in case of failure
                 if (controls) controls.style.display = 'block'; 
-                
                 alert("Image export failed. Please ensure all map tiles have finished loading before exporting.");
                 console.error('Export error:', error);
-                
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
             });

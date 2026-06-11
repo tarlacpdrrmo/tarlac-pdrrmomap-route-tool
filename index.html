@@ -6,7 +6,8 @@
     <title>Map Routing Tool</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
     
     <style>
         /* Modern Reset and Typography */
@@ -120,7 +121,7 @@
         }
         .custom-icon:hover { transform: scale(1.1); cursor: pointer; }
 
-        /* UPDATED: Boxless, Highly Legible Text Label */
+        /* Boxless, Highly Legible Text Label */
         .map-text-label {
             background: transparent;
             border: none;
@@ -132,7 +133,6 @@
             text-align: center;
             transition: transform 0.2s;
             box-shadow: none;
-            /* White stroke effect for legibility on maps */
             text-shadow: 
                 -1.5px -1.5px 0 #fff,  
                  1.5px -1.5px 0 #fff,
@@ -142,14 +142,13 @@
         }
         .map-text-label:hover { transform: scale(1.1); cursor: pointer; }
 
-        /* UPDATED: Bolder Arrow Icons */
+        /* Bolder Arrow Icons */
         .map-arrow-icon {
             font-size: 28px;
             font-weight: 900;
             text-align: center;
             line-height: 28px;
             transition: transform 0.2s;
-            /* White stroke effect for visibility */
             text-shadow: 
                 -1.5px -1.5px 0 #fff,  
                  1.5px -1.5px 0 #fff,
@@ -272,11 +271,11 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- 1. SET UP MAP LAYERS ---
-        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
-        const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap' });
+        // --- 1. SET UP MAP LAYERS (Added crossOrigin: true for clean exports) ---
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap', crossOrigin: true });
+        const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap', crossOrigin: true });
         const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 20, maxNativeZoom: 17, attribution: '© Esri'
+            maxZoom: 20, maxNativeZoom: 17, attribution: '© Esri', crossOrigin: true
         });
 
         const map = L.map('map', {
@@ -444,27 +443,44 @@
 
         saveState();
 
-        // --- 5. EXPORT LOGIC ---
+        // --- 5. UPDATED EXPORT LOGIC WITH DOM-TO-IMAGE ---
         function exportMap() {
             const mapElement = document.getElementById('map');
             const btn = document.getElementById('exportBtn');
             const originalHTML = btn.innerHTML;
+            
             btn.innerHTML = "<span class='icon'>⏳</span> Generating...";
             btn.disabled = true;
 
-            html2canvas(mapElement, {
-                useCORS: true, allowTaint: false, logging: false,
-                ignoreElements: (node) => node.classList && node.classList.contains('leaflet-control-container')
-            }).then(canvas => {
+            // Temporarily hide Leaflet controls (zoom buttons, layer switch) for a clean export
+            const controls = document.querySelector('.leaflet-control-container');
+            if (controls) controls.style.display = 'none';
+
+            // Use domtoimage to take a high-quality capture that respects 3D transforms
+            domtoimage.toPng(mapElement, {
+                width: mapElement.clientWidth,
+                height: mapElement.clientHeight
+            })
+            .then(function (dataUrl) {
+                // Restore controls
+                if (controls) controls.style.display = 'block'; 
+                
+                // Trigger download
                 const link = document.createElement('a');
                 link.download = 'tarlac-route-map.png';
-                link.href = canvas.toDataURL('image/png');
+                link.href = dataUrl;
                 link.click();
+                
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
-            }).catch(err => {
-                alert("Image export failed. Ensure all map layers have loaded.");
-                console.error(err);
+            })
+            .catch(function (error) {
+                // Restore controls in case of failure
+                if (controls) controls.style.display = 'block'; 
+                
+                alert("Image export failed. Please ensure all map tiles have finished loading before exporting.");
+                console.error('Export error:', error);
+                
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
             });
